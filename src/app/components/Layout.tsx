@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router';
-import { Home, Plus, Bookmark, Calendar, Trophy, MessageSquare, User, LayoutDashboard, ChevronLeft, ChevronRight } from 'lucide-react';
-import { InteractionHelpButton } from './InteractionHelpButton';
+import { Home, Plus, Calendar, Trophy, User, LayoutDashboard, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 
 export function Layout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -10,18 +9,22 @@ export function Layout() {
   const navItems = [
     { path: '/', icon: Home, label: 'Feed' },
     { path: '/create-post', icon: Plus, label: 'Create' },
-    { path: '/bookmarks', icon: Bookmark, label: 'Bookmarks' },
     { path: '/events', icon: Calendar, label: 'Events' },
     { path: '/rewards', icon: Trophy, label: 'Rewards' },
-    { path: '/messages', icon: MessageSquare, label: 'Messages' },
-    { path: '/profile', icon: User, label: 'Profile' },
     { path: '/admin', icon: LayoutDashboard, label: 'Admin' },
+    { path: '/profile', icon: User, label: 'Profile' },
   ];
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
     return location.pathname.startsWith(path);
   };
+
+  const isFeedActive = isActive('/');
+  const isEventsActive = isActive('/events');
+  const isCreateActive = isActive('/create-post');
+  const isRewardActive = isActive('/rewards');
+  const isProfileActive = isActive('/profile');
 
   return (
     <div className="flex min-h-screen bg-[#080D1A]">
@@ -69,18 +72,31 @@ export function Layout() {
             })}
           </nav>
 
-          {/* Toggle Button */}
-          <button
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="p-4 border-t border-white/[0.07] text-white/55 hover:text-white/80 flex items-center justify-center transition-colors"
-            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {sidebarCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
-          </button>
+          {/* Logout */}
+          <div className="border-t border-white/[0.07]">
+            <button
+              className={`w-full flex items-center transition-colors text-white/55 hover:text-white/80 hover:bg-white/5 ${
+                sidebarCollapsed ? 'justify-center px-4 py-3' : 'gap-3 px-6 py-3'
+              }`}
+              title={sidebarCollapsed ? 'Logout' : undefined}
+            >
+              <LogOut className="w-5 h-5 flex-shrink-0" />
+              {!sidebarCollapsed && <span className="whitespace-nowrap">Logout</span>}
+            </button>
+
+            {/* Toggle Button */}
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="w-full p-4 border-t border-white/[0.07] text-white/55 hover:text-white/80 flex items-center justify-center transition-colors"
+              title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {sidebarCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
       </aside>
 
-      {/* Main Content - Pushed by Sidebar */}
+      {/* Main Content */}
       <main className="flex-1 min-w-0 pb-20 md:pb-0">
         <div className="min-h-screen">
           <Outlet />
@@ -92,30 +108,67 @@ export function Layout() {
         </footer>
       </main>
 
-      {/* Mobile Bottom Navigation */}
+      {/* Mobile Bottom Navigation — Feed · Events · Create (FAB) · Reward · Profile */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#060B16] border-t border-white/[0.07] z-50">
-        <div className="flex justify-around items-center py-2">
-          {navItems.slice(0, 5).map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.path);
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex flex-col items-center gap-1 px-3 py-2 transition-colors ${
-                  active ? 'text-[#A3E635]' : 'text-white/55'
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="text-xs">{item.label}</span>
-              </Link>
-            );
-          })}
+        <div className="flex justify-around items-end px-2 pb-2 pt-1">
+
+          {/* Feed */}
+          <Link
+            to="/"
+            className={`flex flex-col items-center gap-1 px-3 py-2 transition-colors ${isFeedActive ? 'text-[#A3E635]' : 'text-white/55'}`}
+          >
+            <Home className="w-5 h-5" />
+            <span className="text-xs">Feed</span>
+          </Link>
+
+          {/* Events */}
+          <Link
+            to="/events"
+            className={`flex flex-col items-center gap-1 px-3 py-2 transition-colors ${isEventsActive ? 'text-[#A3E635]' : 'text-white/55'}`}
+          >
+            <Calendar className="w-5 h-5" />
+            <span className="text-xs">Events</span>
+          </Link>
+
+          {/* Create — center FAB */}
+          <Link
+            to="/create-post"
+            className="flex flex-col items-center gap-1 px-3 -mt-4 transition-opacity"
+            aria-label="Create post"
+          >
+            <div
+              className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 ${
+                isCreateActive
+                  ? 'bg-[#A3E635] ring-4 ring-[#A3E635]/30'
+                  : 'bg-[#A3E635]'
+              }`}
+            >
+              <Plus className="w-7 h-7 text-black" strokeWidth={2.5} />
+            </div>
+            <span className={`text-xs mt-0.5 ${isCreateActive ? 'text-[#A3E635]' : 'text-white/55'}`}>Create</span>
+          </Link>
+
+          {/* Reward */}
+          <Link
+            to="/rewards"
+            className={`flex flex-col items-center gap-1 px-3 py-2 transition-colors ${isRewardActive ? 'text-[#A3E635]' : 'text-white/55'}`}
+          >
+            <Trophy className="w-5 h-5" />
+            <span className="text-xs">Reward</span>
+          </Link>
+
+          {/* Profile */}
+          <Link
+            to="/profile"
+            className={`flex flex-col items-center gap-1 px-3 py-2 transition-colors ${isProfileActive ? 'text-[#A3E635]' : 'text-white/55'}`}
+          >
+            <User className="w-5 h-5" />
+            <span className="text-xs">Profile</span>
+          </Link>
+
         </div>
       </nav>
 
-      {/* Floating Help Button */}
-      <InteractionHelpButton />
     </div>
   );
 }

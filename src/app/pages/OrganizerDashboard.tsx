@@ -6,7 +6,7 @@ import { Badge } from '../components/ui/badge';
 export function OrganizerDashboard() {
   const stats = [
     { label: 'Total Events', value: '12', icon: Calendar, color: '#A3E635' },
-    { label: 'Total Attendees', value: '1,234', icon: Users, color: '#10B981' },
+    { label: 'Total Joined', value: '1,234', icon: Users, color: '#10B981' },
     { label: 'Active Events', value: '3', icon: TrendingUp, color: '#3B82F6' },
     { label: 'Rewards Given', value: '456', icon: Trophy, color: '#F59E0B' },
   ];
@@ -96,9 +96,9 @@ export function OrganizerDashboard() {
           </div>
         </div>
 
-        {/* Participant Check-in */}
+        {/* Confirmed Participants */}
         <div className="bg-[#0F172A] border border-white/[0.07] rounded-xl p-6">
-          <h3 className="mb-6">Participant Check-in</h3>
+          <h3 className="mb-6">Confirmed Participants</h3>
           <div className="space-y-3">
             {participants.map((participant) => (
               <div
@@ -110,6 +110,7 @@ export function OrganizerDashboard() {
                 </div>
                 <div className="flex-1">
                   <div className="font-medium">@{participant.username}</div>
+                  <div className="text-xs text-[#A3E635] mt-0.5">Confirmed</div>
                 </div>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input

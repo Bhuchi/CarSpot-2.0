@@ -58,6 +58,13 @@ const mockEvents: Event[] = [
 
 export function EventsFeed() {
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'past'>('all');
+  const [joinedEvents, setJoinedEvents] = useState<Set<string>>(new Set());
+
+  const handleJoin = (e: React.MouseEvent, eventId: string, isFull: boolean) => {
+    e.preventDefault();
+    if (isFull || joinedEvents.has(eventId)) return;
+    setJoinedEvents((prev) => new Set(prev).add(eventId));
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
@@ -108,6 +115,9 @@ export function EventsFeed() {
       <div className="grid md:grid-cols-2 gap-6">
         {mockEvents.map((event) => {
           const capacityPercentage = (event.registered / event.capacity) * 100;
+          const isFull = event.registered >= event.capacity;
+          const isJoined = joinedEvents.has(event.id);
+
           return (
             <Link key={event.id} to={`/events/${event.id}`}>
               <article className="bg-[#0F172A] border border-white/[0.07] rounded-xl overflow-hidden hover:border-[#A3E635]/30 transition-colors group">
@@ -155,9 +165,25 @@ export function EventsFeed() {
                     <Progress value={capacityPercentage} className="h-2 bg-[#1E293B]" />
                   </div>
 
-                  <Button className="w-full bg-[#A3E635] text-black hover:bg-[#A3E635]/90">
-                    RSVP
-                  </Button>
+                  {isFull ? (
+                    <Button disabled className="w-full bg-[#1E293B] text-white/40 cursor-not-allowed">
+                      Full
+                    </Button>
+                  ) : isJoined ? (
+                    <Button
+                      className="w-full bg-[#166534] text-[#A3E635] border border-[#A3E635]/40 hover:bg-[#166534]/80 cursor-default"
+                      onClick={(e) => e.preventDefault()}
+                    >
+                      Joined ✓
+                    </Button>
+                  ) : (
+                    <Button
+                      className="w-full bg-[#A3E635] text-black hover:bg-[#A3E635]/90"
+                      onClick={(e) => handleJoin(e, event.id, isFull)}
+                    >
+                      Join Event
+                    </Button>
+                  )}
                 </div>
               </article>
             </Link>

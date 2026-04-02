@@ -1,10 +1,13 @@
+import { useState } from 'react';
 import { useParams } from 'react-router';
-import { Calendar, MapPin, Users, CheckCircle, Shield } from 'lucide-react';
+import { Calendar, MapPin, Users, CheckCircle, Shield, X } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Progress } from '../components/ui/progress';
 
 export function EventDetail() {
   const { id } = useParams();
+  const [joined, setJoined] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const event = {
     id: id,
@@ -31,6 +34,12 @@ export function EventDetail() {
   };
 
   const capacityPercentage = (event.registered / event.capacity) * 100;
+  const isFull = event.registered >= event.capacity;
+
+  const handleConfirm = () => {
+    setJoined(true);
+    setModalOpen(false);
+  };
 
   return (
     <div className="pb-12">
@@ -129,10 +138,26 @@ export function EventDetail() {
             <span className="text-sm text-[#A3E635] font-medium">Permits Verified</span>
           </div>
 
-          {/* RSVP Button */}
-          <Button className="w-full bg-[#A3E635] text-black hover:bg-[#A3E635]/90 h-12">
-            RSVP to Event
-          </Button>
+          {/* Join this event */}
+          <h4 className="mb-3 text-white/80">Join this event</h4>
+          {isFull ? (
+            <Button disabled className="w-full bg-[#1E293B] text-white/40 cursor-not-allowed h-12">
+              Full
+            </Button>
+          ) : joined ? (
+            <Button
+              className="w-full bg-[#166534] text-[#A3E635] border border-[#A3E635]/40 hover:bg-[#166534]/80 cursor-default h-12"
+            >
+              Joined ✓
+            </Button>
+          ) : (
+            <Button
+              className="w-full bg-[#A3E635] text-black hover:bg-[#A3E635]/90 h-12"
+              onClick={() => setModalOpen(true)}
+            >
+              Join Event
+            </Button>
+          )}
         </div>
 
         {/* Sponsors */}
@@ -152,6 +177,54 @@ export function EventDetail() {
           </div>
         )}
       </div>
+
+      {/* Confirm Your Spot Modal */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setModalOpen(false)} />
+          <div className="relative bg-[#0F172A] border border-white/[0.07] rounded-xl p-8 w-full max-w-md">
+            <button
+              onClick={() => setModalOpen(false)}
+              className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h3 className="mb-2">Confirm Your Spot</h3>
+            <p className="text-[#6B7280] mb-6">
+              You're about to join <span className="text-white font-medium">{event.name}</span> on{' '}
+              {event.date} at {event.time.split(' - ')[0]}.
+            </p>
+
+            <div className="bg-[#0B1120] border border-white/[0.07] rounded-lg p-4 mb-6 space-y-2 text-sm">
+              <div className="flex gap-2">
+                <Calendar className="w-4 h-4 text-[#A3E635] mt-0.5 flex-shrink-0" />
+                <span>{event.date}, {event.time}</span>
+              </div>
+              <div className="flex gap-2">
+                <MapPin className="w-4 h-4 text-[#A3E635] mt-0.5 flex-shrink-0" />
+                <span>{event.location}</span>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1 border-white/20 text-white hover:bg-white/5"
+                onClick={() => setModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 bg-[#A3E635] text-black hover:bg-[#A3E635]/90"
+                onClick={handleConfirm}
+              >
+                Confirm
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

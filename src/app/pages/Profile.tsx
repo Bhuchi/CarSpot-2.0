@@ -1,11 +1,28 @@
+import { useState } from 'react';
 import { useParams } from 'react-router';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Trash2, ExternalLink } from 'lucide-react';
 import { Button } from '../components/ui/button';
+
+const mockSavedPosts = [
+  {
+    id: '1',
+    imageUrl: 'https://images.unsplash.com/photo-1765597119545-6b481bd14d37?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZWQlMjBzcG9ydHMlMjBjYXIlMjBmcm9udHxlbnwxfHx8fDE3NzQ5NzUwNDZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
+    username: 'carspotter_23',
+    savedDate: 'Saved 2 days ago',
+  },
+  {
+    id: '3',
+    imageUrl: 'https://images.unsplash.com/photo-1752462091434-f204aad93153?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3aGl0ZSUyMHNwb3J0cyUyMGNhcnxlbnwxfHx8fDE3NzUwMjkxNTJ8MA&ixlib=rb-4.1.0&q=80&w=1080',
+    username: 'speed_demon',
+    savedDate: 'Saved 1 week ago',
+  },
+];
 
 export function Profile() {
   const { username } = useParams();
   const isOwnProfile = !username || username === 'currentuser';
   const isVerifiedOrganizer = username === 'organizer_pro';
+  const [activeTab, setActiveTab] = useState<'posts' | 'saved'>('posts');
 
   const profileData = {
     username: username || 'currentuser',
@@ -75,7 +92,7 @@ export function Profile() {
         </div>
 
         {/* Stats */}
-        <div className="flex gap-8 mb-8 pb-8 border-b border-white/[0.07]">
+        <div className="flex gap-8 mb-6 pb-6 border-b border-white/[0.07]">
           <div className="text-center">
             <div className="text-2xl font-bold">{profileData.posts}</div>
             <div className="text-sm text-[#6B7280]">Posts</div>
@@ -111,17 +128,105 @@ export function Profile() {
           </div>
         </div>
 
-        {/* Posts Grid */}
-        <div>
-          <h3 className="mb-4">Posts</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {userPosts.map((postUrl, index) => (
-              <div key={index} className="aspect-square rounded-xl overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
-                <img src={postUrl} alt={`Post ${index + 1}`} className="w-full h-full object-cover" />
-              </div>
-            ))}
-          </div>
+        {/* Posts / Saved Tabs */}
+        <div className="flex border-b border-white/[0.07] mb-6">
+          <button
+            onClick={() => setActiveTab('posts')}
+            className={`px-6 py-3 text-sm font-medium transition-colors relative ${
+              activeTab === 'posts'
+                ? 'text-white'
+                : 'text-[#6B7280] hover:text-white/80'
+            }`}
+          >
+            Posts
+            {activeTab === 'posts' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#A3E635]" />
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('saved')}
+            className={`px-6 py-3 text-sm font-medium transition-colors relative ${
+              activeTab === 'saved'
+                ? 'text-white'
+                : 'text-[#6B7280] hover:text-white/80'
+            }`}
+          >
+            Saved
+            {activeTab === 'saved' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#A3E635]" />
+            )}
+          </button>
         </div>
+
+        {/* Posts Tab */}
+        {activeTab === 'posts' && (
+          userPosts.length === 0 ? (
+            <div className="bg-[#0F172A] border border-white/[0.07] rounded-xl p-12 text-center">
+              <p className="text-[#6B7280]">No posts yet</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {userPosts.map((postUrl, index) => (
+                <div key={index} className="aspect-square rounded-xl overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
+                  <img src={postUrl} alt={`Post ${index + 1}`} className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </div>
+          )
+        )}
+
+        {/* Saved Tab */}
+        {activeTab === 'saved' && (
+          mockSavedPosts.length === 0 ? (
+            <div className="bg-[#0F172A] border border-white/[0.07] rounded-xl p-12 text-center">
+              <p className="text-[#6B7280] mb-4">No saved posts yet</p>
+              <Button className="bg-[#A3E635] text-black hover:bg-[#A3E635]/90">
+                Explore Feed
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {mockSavedPosts.map((post) => (
+                <article
+                  key={post.id}
+                  className="bg-[#0F172A] border border-white/[0.07] rounded-xl overflow-hidden"
+                >
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <img
+                      src={post.imageUrl}
+                      alt="Saved car"
+                      className="w-full sm:w-48 h-48 object-cover"
+                    />
+                    <div className="flex-1 p-4 flex flex-col justify-between">
+                      <div>
+                        <div className="font-medium mb-1">@{post.username}</div>
+                        <div className="text-sm text-[#6B7280]">{post.savedDate}</div>
+                        <div className="text-xs text-white/40 mt-1">Rate this car to reveal the average</div>
+                      </div>
+                      <div className="flex gap-2 mt-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 border-white/10 text-white hover:bg-white/5"
+                        >
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          View Post
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-[#EF4444]/30 text-[#EF4444] hover:bg-[#EF4444]/10"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )
+        )}
       </div>
     </div>
   );
