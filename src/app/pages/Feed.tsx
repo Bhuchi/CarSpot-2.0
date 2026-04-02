@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { Search, Bookmark, Share2, Flag, Info } from 'lucide-react';
+import { Search, Bookmark, Share2, Flag } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { RatingSlider } from '../components/RatingSlider';
 import { AIBlurBadge, AIBlurOverlay } from '../components/AIBlurBadge';
 import { ReportModal } from '../components/ReportModal';
 import { SwipeablePostImage } from '../components/SwipeablePostImage';
-import { Link } from 'react-router';
 
 interface Post {
   id: string;
@@ -84,24 +83,6 @@ export function Feed() {
 
   return (
     <div className="max-w-[560px] mx-auto px-6 py-12">
-      {/* Interaction Instructions */}
-      <div className="mb-6 bg-[#A3E635]/10 border border-[#A3E635]/20 rounded-xl p-4">
-        <div className="flex items-start justify-between gap-4 mb-2">
-          <h3 className="text-[#A3E635]">✨ New Rating Interactions</h3>
-          <Link to="/interaction-demo">
-            <Button variant="ghost" size="sm" className="text-[#A3E635] hover:bg-[#A3E635]/10 -mt-1">
-              <Info className="w-4 h-4 mr-1" />
-              Learn More
-            </Button>
-          </Link>
-        </div>
-        <div className="text-sm text-white/80 space-y-1">
-          <p>• <strong>Swipe right on images</strong> to quick-rate (distance = score)</p>
-          <p>• <strong>Drag the slider</strong> to see live rating value above thumb</p>
-          <p>• <strong>Toggle the sidebar</strong> (desktop) to see push layout in action</p>
-        </div>
-      </div>
-
       <div className="mb-8">
         <h2 className="mb-6">Latest Posts</h2>
         <div className="relative">
