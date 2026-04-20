@@ -1,13 +1,18 @@
 import { useState } from 'react';
-import { ChevronRight, ChevronLeft, Upload } from 'lucide-react';
+import { useNavigate } from 'react-router';
+import { ChevronRight, ChevronLeft, ImagePlus, Upload } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
+import { addEvent, formatEventDate, formatEventTime, pickFallbackEventImage } from '../lib/events';
 
 export function CreateEvent() {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     name: '',
+    coverImage: '',
+    coverImageName: '',
     date: '',
     time: '',
     location: '',
@@ -28,9 +33,54 @@ export function CreateEvent() {
     if (step > 1) setStep(step - 1);
   };
 
+  const handleCoverImageChange = (file: File | null) => {
+    if (!file) {
+      setFormData((currentFormData) => ({ ...currentFormData, coverImage: '', coverImageName: '' }));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFormData((currentFormData) => ({
+        ...currentFormData,
+        coverImage: typeof reader.result === 'string' ? reader.result : '',
+        coverImageName: file.name,
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = () => {
-    console.log('Creating event:', formData);
-    // In real app, would submit to backend
+    const name = formData.name.trim() || 'Untitled Car Meet';
+    const capacity = Number(formData.capacity);
+    const rules = formData.rules
+      .split('\n')
+      .map((rule) => rule.trim())
+      .filter(Boolean);
+
+    addEvent({
+      id: `event-${Date.now()}`,
+      name,
+      coverImage: formData.coverImage || pickFallbackEventImage(`${name}-${formData.location}`),
+      organizer: 'you',
+      organizerVerified: true,
+      date: formatEventDate(formData.date),
+      time: formatEventTime(formData.time),
+      location: formData.location.trim() || 'Location not set',
+      capacity: Number.isFinite(capacity) && capacity > 0 ? capacity : 50,
+      registered: 0,
+      description: rules.length > 0
+        ? rules.join(' ')
+        : 'A community car meet created by the organizer.',
+      rules: rules.length > 0
+        ? rules
+        : ['Respect attendees and their vehicles', 'Follow organizer instructions', 'Keep the venue clean'],
+      sponsors: formData.sponsors
+        .split(',')
+        .map((sponsor) => sponsor.trim())
+        .filter(Boolean),
+    });
+    navigate('/events');
   };
 
   return (
@@ -78,6 +128,31 @@ export function CreateEvent() {
                 placeholder="e.g., SoCal Cars & Coffee"
                 className="bg-[#0B1120] border-white/10 text-white"
               />
+            </div>
+            <div>
+              <label className="block text-sm mb-2">Card Photo</label>
+              <label className="grid sm:grid-cols-[180px_1fr] gap-4 border-2 border-dashed border-white/20 rounded-xl p-4 hover:border-[#A3E635]/50 transition-colors cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleCoverImageChange(e.target.files?.[0] || null)}
+                  className="hidden"
+                />
+                <div className="aspect-video rounded-lg overflow-hidden bg-[#0B1120] border border-white/[0.07] flex items-center justify-center">
+                  {formData.coverImage ? (
+                    <img src={formData.coverImage} alt="Event card preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <ImagePlus className="w-10 h-10 text-white/40" />
+                  )}
+                </div>
+                <div className="flex flex-col justify-center">
+                  <p className="text-white/80 mb-1">Upload event card image</p>
+                  <p className="text-sm text-white/40">JPG or PNG</p>
+                  {formData.coverImageName && (
+                    <p className="text-sm text-[#A3E635] mt-3">✓ {formData.coverImageName}</p>
+                  )}
+                </div>
+              </label>
             </div>
             <div className="grid sm:grid-cols-2 gap-6">
               <div>
@@ -192,6 +267,15 @@ export function CreateEvent() {
           <div className="space-y-6">
             <h3>Review & Publish</h3>
             <div className="space-y-4">
+              <div className="bg-[#0B1120] border border-white/[0.07] rounded-lg overflow-hidden">
+                <div className="aspect-video">
+                  <img
+                    src={formData.coverImage || pickFallbackEventImage(`${formData.name}-${formData.location}`)}
+                    alt="Event card preview"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
               <div className="bg-[#0B1120] border border-white/[0.07] rounded-lg p-4">
                 <div className="text-sm text-[#6B7280] mb-1">Event Name</div>
                 <div className="font-medium">{formData.name || 'Not set'}</div>

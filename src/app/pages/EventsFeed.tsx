@@ -3,68 +3,62 @@ import { Link } from 'react-router';
 import { Calendar, MapPin, Users, CheckCircle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Progress } from '../components/ui/progress';
-
-interface Event {
-  id: string;
-  name: string;
-  coverImage: string;
-  organizer: string;
-  organizerVerified: boolean;
-  date: string;
-  time: string;
-  location: string;
-  capacity: number;
-  registered: number;
-}
-
-const mockEvents: Event[] = [
-  {
-    id: '1',
-    name: 'SoCal Cars & Coffee',
-    coverImage: 'https://images.unsplash.com/photo-1692133208294-7e181628ef21?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjYXIlMjBtZWV0JTIwcGFya2luZyUyMGxvdHxlbnwxfHx8fDE3NzUwMjkyNjV8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    organizer: 'organizer_pro',
-    organizerVerified: true,
-    date: 'Apr 15, 2026',
-    time: '8:00 AM',
-    location: 'Irvine Spectrum Center',
-    capacity: 200,
-    registered: 156,
-  },
-  {
-    id: '2',
-    name: 'Sunset Drive Meetup',
-    coverImage: 'https://images.unsplash.com/photo-1753047144334-ef092bb219e1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjYXJzJTIwZ2F0aGVyaW5nJTIwc3Vuc2V0fGVufDF8fHx8MTc3NTAyOTI2Nnww&ixlib=rb-4.1.0&q=80&w=1080',
-    organizer: 'cruisemaster',
-    organizerVerified: true,
-    date: 'Apr 18, 2026',
-    time: '6:00 PM',
-    location: 'Malibu Coast',
-    capacity: 50,
-    registered: 42,
-  },
-  {
-    id: '3',
-    name: 'Import Tuner Showcase',
-    coverImage: 'https://images.unsplash.com/photo-1646527825440-7239c534f3a5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjYXIlMjBzaG93JTIwZXZlbnR8ZW58MXx8fHwxNzc1MDI5MjY2fDA&ixlib=rb-4.1.0&q=80&w=1080',
-    organizer: 'tuner_nation',
-    organizerVerified: false,
-    date: 'Apr 22, 2026',
-    time: '10:00 AM',
-    location: 'Long Beach Convention Center',
-    capacity: 500,
-    registered: 287,
-  },
-];
+import {
+  getEvents,
+  getJoinedEventIds,
+  saveJoinedEventIds,
+  updateEventRegistration,
+} from '../lib/events';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog';
 
 export function EventsFeed() {
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'past'>('all');
-  const [joinedEvents, setJoinedEvents] = useState<Set<string>>(new Set());
+  const [events, setEvents] = useState(() => getEvents());
+  const [joinedEvents, setJoinedEvents] = useState<Set<string>>(() => getJoinedEventIds());
+  const [pendingCancelEventId, setPendingCancelEventId] = useState<string | null>(null);
 
   const handleJoin = (e: React.MouseEvent, eventId: string, isFull: boolean) => {
     e.preventDefault();
+    e.stopPropagation();
     if (isFull || joinedEvents.has(eventId)) return;
-    setJoinedEvents((prev) => new Set(prev).add(eventId));
+
+    setEvents(updateEventRegistration(eventId, 1));
+    setJoinedEvents((prev) => {
+      const next = new Set(prev).add(eventId);
+      saveJoinedEventIds(next);
+      return next;
+    });
   };
+
+  const handleCancelRequest = (e: React.MouseEvent, eventId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPendingCancelEventId(eventId);
+  };
+
+  const handleCancelJoin = () => {
+    if (!pendingCancelEventId) return;
+
+    setEvents(updateEventRegistration(pendingCancelEventId, -1));
+    setJoinedEvents((prev) => {
+      const next = new Set(prev);
+      next.delete(pendingCancelEventId);
+      saveJoinedEventIds(next);
+      return next;
+    });
+    setPendingCancelEventId(null);
+  };
+
+  const pendingCancelEvent = events.find((event) => event.id === pendingCancelEventId);
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
@@ -113,7 +107,7 @@ export function EventsFeed() {
 
       {/* Events Grid */}
       <div className="grid md:grid-cols-2 gap-6">
-        {mockEvents.map((event) => {
+        {events.map((event) => {
           const capacityPercentage = (event.registered / event.capacity) * 100;
           const isFull = event.registered >= event.capacity;
           const isJoined = joinedEvents.has(event.id);
@@ -165,16 +159,16 @@ export function EventsFeed() {
                     <Progress value={capacityPercentage} className="h-2 bg-[#1E293B]" />
                   </div>
 
-                  {isFull ? (
+                  {isJoined ? (
+                    <Button
+                      className="w-full bg-[#3F1D1D] text-[#FCA5A5] border border-[#EF4444]/40 hover:bg-[#4B1F1F]"
+                      onClick={(e) => handleCancelRequest(e, event.id)}
+                    >
+                      Cancel Join
+                    </Button>
+                  ) : isFull ? (
                     <Button disabled className="w-full bg-[#1E293B] text-white/40 cursor-not-allowed">
                       Full
-                    </Button>
-                  ) : isJoined ? (
-                    <Button
-                      className="w-full bg-[#166534] text-[#A3E635] border border-[#A3E635]/40 hover:bg-[#166534]/80 cursor-default"
-                      onClick={(e) => e.preventDefault()}
-                    >
-                      Joined ✓
                     </Button>
                   ) : (
                     <Button
@@ -190,6 +184,29 @@ export function EventsFeed() {
           );
         })}
       </div>
+
+      <AlertDialog open={Boolean(pendingCancelEventId)} onOpenChange={(open) => !open && setPendingCancelEventId(null)}>
+        <AlertDialogContent className="bg-[#0F172A] border-white/[0.07] text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel your join?</AlertDialogTitle>
+            <AlertDialogDescription className="text-[#6B7280]">
+              Are you sure you want to cancel your spot for{' '}
+              <span className="text-white font-medium">{pendingCancelEvent?.name || 'this event'}</span>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/20 text-white hover:bg-white/5">
+              Keep Joined
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-[#EF4444] text-white hover:bg-[#DC2626]"
+              onClick={handleCancelJoin}
+            >
+              Cancel Join
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

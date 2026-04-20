@@ -3,42 +3,74 @@ import { useParams } from 'react-router';
 import { Calendar, MapPin, Users, CheckCircle, Shield, X } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Progress } from '../components/ui/progress';
+import {
+  findEventById,
+  getJoinedEventIds,
+  saveJoinedEventIds,
+  updateEventRegistration,
+} from '../lib/events';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog';
 
 export function EventDetail() {
   const { id } = useParams();
-  const [joined, setJoined] = useState(false);
+  const [event, setEvent] = useState(() => findEventById(id));
+  const [joinedEvents, setJoinedEvents] = useState<Set<string>>(() => getJoinedEventIds());
   const [modalOpen, setModalOpen] = useState(false);
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
 
-  const event = {
-    id: id,
-    name: 'SoCal Cars & Coffee',
-    coverImage: 'https://images.unsplash.com/photo-1692133208294-7e181628ef21?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjYXIlMjBtZWV0JTIwcGFya2luZyUyMGxvdHxlbnwxfHx8fDE3NzUwMjkyNjV8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    organizer: {
-      username: 'organizer_pro',
-      avatar: 'OP',
-      verified: true,
-    },
-    date: 'Apr 15, 2026',
-    time: '8:00 AM - 12:00 PM',
-    location: 'Irvine Spectrum Center, 71 Fortune Dr, Irvine, CA',
-    capacity: 200,
-    registered: 156,
-    description: 'Join us for the monthly SoCal Cars & Coffee meetup! All car enthusiasts welcome.',
-    rules: [
-      'No burnouts or aggressive driving in the parking area',
-      'Respect all attendees and their vehicles',
-      'Follow organizer and security instructions',
-      'Keep the area clean',
-    ],
-    sponsors: ['AutoZone', 'Shell', 'Michelin'],
-  };
+  if (!event) {
+    return (
+      <div className="max-w-3xl mx-auto px-6 py-12">
+        <div className="bg-[#0F172A] border border-white/[0.07] rounded-xl p-8 text-center">
+          <h2 className="mb-3">Event Not Found</h2>
+          <p className="text-[#6B7280]">This event is no longer available.</p>
+        </div>
+      </div>
+    );
+  }
 
   const capacityPercentage = (event.registered / event.capacity) * 100;
   const isFull = event.registered >= event.capacity;
+  const joined = joinedEvents.has(event.id);
+  const organizerAvatar = event.organizer
+    .split(/[_\s-]+/)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || 'YO';
 
   const handleConfirm = () => {
-    setJoined(true);
+    const updatedEvents = updateEventRegistration(event.id, 1);
+    const updatedEvent = updatedEvents.find((item) => item.id === event.id);
+    if (updatedEvent) setEvent(updatedEvent);
+    setJoinedEvents((prev) => {
+      const next = new Set(prev).add(event.id);
+      saveJoinedEventIds(next);
+      return next;
+    });
     setModalOpen(false);
+  };
+
+  const handleCancelJoin = () => {
+    const updatedEvents = updateEventRegistration(event.id, -1);
+    const updatedEvent = updatedEvents.find((item) => item.id === event.id);
+    if (updatedEvent) setEvent(updatedEvent);
+    setJoinedEvents((prev) => {
+      const next = new Set(prev);
+      next.delete(event.id);
+      saveJoinedEventIds(next);
+      return next;
+    });
+    setCancelModalOpen(false);
   };
 
   return (
@@ -57,8 +89,8 @@ export function EventDetail() {
           <div className="bg-[#0B1120] border border-white/[0.07] rounded-xl p-6 mb-6">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-12 h-12 bg-[#A3E635] rounded-full flex items-center justify-center relative">
-                <span className="text-black font-bold">{event.organizer.avatar}</span>
-                {event.organizer.verified && (
+                <span className="text-black font-bold">{organizerAvatar}</span>
+                {event.organizerVerified && (
                   <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-[#A3E635] rounded-full flex items-center justify-center border-2 border-[#0B1120]">
                     <CheckCircle className="w-3 h-3 text-black" />
                   </div>
@@ -66,9 +98,9 @@ export function EventDetail() {
               </div>
               <div>
                 <div className="text-sm text-[#6B7280]">Organized by</div>
-                <div className="font-medium">@{event.organizer.username}</div>
+                <div className="font-medium">@{event.organizer}</div>
               </div>
-              {event.organizer.verified && (
+              {event.organizerVerified && (
                 <div className="ml-auto">
                   <span className="px-3 py-1 bg-[#A3E635]/20 text-[#A3E635] text-sm rounded-full">
                     Verified Organizer
@@ -140,15 +172,16 @@ export function EventDetail() {
 
           {/* Join this event */}
           <h4 className="mb-3 text-white/80">Join this event</h4>
-          {isFull ? (
+          {joined ? (
+            <Button
+              className="w-full bg-[#3F1D1D] text-[#FCA5A5] border border-[#EF4444]/40 hover:bg-[#4B1F1F] h-12"
+              onClick={() => setCancelModalOpen(true)}
+            >
+              Cancel Join
+            </Button>
+          ) : isFull ? (
             <Button disabled className="w-full bg-[#1E293B] text-white/40 cursor-not-allowed h-12">
               Full
-            </Button>
-          ) : joined ? (
-            <Button
-              className="w-full bg-[#166534] text-[#A3E635] border border-[#A3E635]/40 hover:bg-[#166534]/80 cursor-default h-12"
-            >
-              Joined ✓
             </Button>
           ) : (
             <Button
@@ -225,6 +258,29 @@ export function EventDetail() {
           </div>
         </div>
       )}
+
+      <AlertDialog open={cancelModalOpen} onOpenChange={setCancelModalOpen}>
+        <AlertDialogContent className="bg-[#0F172A] border-white/[0.07] text-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel your join?</AlertDialogTitle>
+            <AlertDialogDescription className="text-[#6B7280]">
+              Are you sure you want to cancel your spot for{' '}
+              <span className="text-white font-medium">{event.name}</span>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/20 text-white hover:bg-white/5">
+              Keep Joined
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-[#EF4444] text-white hover:bg-[#DC2626]"
+              onClick={handleCancelJoin}
+            >
+              Cancel Join
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

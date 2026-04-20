@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ThumbsUp } from 'lucide-react';
+import { ThumbsDown, ThumbsUp } from 'lucide-react';
 
 interface SwipeablePostImageProps {
   imageUrl: string;
@@ -11,6 +11,7 @@ interface SwipeablePostImageProps {
 
 export function SwipeablePostImage({ imageUrl, alt, hasRated, onSwipeRate, children }: SwipeablePostImageProps) {
   const [swipeProgress, setSwipeProgress] = useState(0);
+  const [swipeDirection, setSwipeDirection] = useState<'like' | 'unlike' | null>(null);
   const [isSwiping, setIsSwiping] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -18,23 +19,44 @@ export function SwipeablePostImage({ imageUrl, alt, hasRated, onSwipeRate, child
   const startYRef = useRef(0);
   const isHorizontalRef = useRef<boolean | null>(null); // null = not yet determined
   const swipeProgressRef = useRef(0); // mirror of state for use inside listeners
+  const swipeDirectionRef = useRef<'like' | 'unlike' | null>(null);
   const isSwipingRef = useRef(false);
   const isConfirmedRef = useRef(false);
+  const onSwipeRateRef = useRef(onSwipeRate);
 
   const SWIPE_THRESHOLD = 0.6;
 
   const calculateSwipeProgress = (deltaX: number, containerWidth: number) =>
-    Math.max(0, Math.min(1, deltaX / containerWidth));
+    Math.max(0, Math.min(1, Math.abs(deltaX) / containerWidth));
 
-  const confirmRating = (progress: number) => {
+  useEffect(() => {
+    onSwipeRateRef.current = onSwipeRate;
+  }, [onSwipeRate]);
+
+  const setSwipeState = (progress: number, direction: 'like' | 'unlike') => {
+    swipeProgressRef.current = progress;
+    swipeDirectionRef.current = direction;
+    setSwipeProgress(progress);
+    setSwipeDirection(direction);
+  };
+
+  const clearSwipeState = () => {
+    swipeProgressRef.current = 0;
+    swipeDirectionRef.current = null;
+    setSwipeProgress(0);
+    setSwipeDirection(null);
+  };
+
+  const confirmRating = (progress: number, direction: 'like' | 'unlike') => {
     isConfirmedRef.current = true;
     setIsConfirmed(true);
+    setSwipeDirection(direction);
     const normalized = (progress - SWIPE_THRESHOLD) / (1 - SWIPE_THRESHOLD);
-    const rating = Math.max(1, Math.min(10, Math.round(normalized * 9) + 1));
+    const likedRating = Math.max(1, Math.min(10, Math.round(normalized * 9) + 1));
+    const rating = direction === 'like' ? likedRating : 1;
     setTimeout(() => {
-      onSwipeRate?.(rating);
-      setSwipeProgress(0);
-      swipeProgressRef.current = 0;
+      onSwipeRateRef.current?.(rating);
+      clearSwipeState();
       setIsConfirmed(false);
       isConfirmedRef.current = false;
     }, 500);
@@ -64,12 +86,11 @@ export function SwipeablePostImage({ imageUrl, alt, hasRated, onSwipeRate, child
         isHorizontalRef.current = Math.abs(deltaX) > Math.abs(deltaY);
       }
 
-      // Only lock & prevent scroll for horizontal swipes
-      if (isHorizontalRef.current && deltaX > 0) {
+      // Only lock & prevent scroll for horizontal swipes.
+      if (isHorizontalRef.current) {
         e.preventDefault(); // stops page scroll
         const progress = calculateSwipeProgress(deltaX, containerRef.current.offsetWidth);
-        swipeProgressRef.current = progress;
-        setSwipeProgress(progress);
+        setSwipeState(progress, deltaX >= 0 ? 'like' : 'unlike');
       }
     };
 
@@ -79,11 +100,10 @@ export function SwipeablePostImage({ imageUrl, alt, hasRated, onSwipeRate, child
       setIsSwiping(false);
       isHorizontalRef.current = null;
 
-      if (swipeProgressRef.current >= SWIPE_THRESHOLD) {
-        confirmRating(swipeProgressRef.current);
+      if (swipeProgressRef.current >= SWIPE_THRESHOLD && swipeDirectionRef.current) {
+        confirmRating(swipeProgressRef.current, swipeDirectionRef.current);
       } else {
-        setSwipeProgress(0);
-        swipeProgressRef.current = 0;
+        clearSwipeState();
       }
     };
 
@@ -112,21 +132,17 @@ export function SwipeablePostImage({ imageUrl, alt, hasRated, onSwipeRate, child
     const onMouseMove = (e: MouseEvent) => {
       if (!containerRef.current) return;
       const deltaX = e.clientX - startXRef.current;
-      if (deltaX > 0) {
-        const progress = calculateSwipeProgress(deltaX, containerRef.current.offsetWidth);
-        swipeProgressRef.current = progress;
-        setSwipeProgress(progress);
-      }
+      const progress = calculateSwipeProgress(deltaX, containerRef.current.offsetWidth);
+      setSwipeState(progress, deltaX >= 0 ? 'like' : 'unlike');
     };
 
     const onMouseUp = () => {
       isSwipingRef.current = false;
       setIsSwiping(false);
-      if (swipeProgressRef.current >= SWIPE_THRESHOLD) {
-        confirmRating(swipeProgressRef.current);
+      if (swipeProgressRef.current >= SWIPE_THRESHOLD && swipeDirectionRef.current) {
+        confirmRating(swipeProgressRef.current, swipeDirectionRef.current);
       } else {
-        setSwipeProgress(0);
-        swipeProgressRef.current = 0;
+        clearSwipeState();
       }
     };
 
@@ -140,6 +156,7 @@ export function SwipeablePostImage({ imageUrl, alt, hasRated, onSwipeRate, child
 
   const overlayOpacity = swipeProgress;
   const iconScale = 0.5 + swipeProgress * 0.5;
+  const isUnlikeSwipe = swipeDirection === 'unlike';
 
   return (
     <div
@@ -164,17 +181,23 @@ export function SwipeablePostImage({ imageUrl, alt, hasRated, onSwipeRate, child
       {/* Swipe overlay */}
       {(swipeProgress > 0 || isConfirmed) && (
         <div
-          className="absolute inset-0 bg-[#A3E635] flex items-center justify-center transition-all duration-300"
+          className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ${
+            isUnlikeSwipe ? 'bg-[#EF4444]' : 'bg-[#A3E635]'
+          }`}
           style={{ opacity: isConfirmed ? 1 : overlayOpacity * 0.85 }}
         >
           <div
             className="flex flex-col items-center gap-2 transition-transform duration-200"
             style={{ transform: `scale(${iconScale})` }}
           >
-            <ThumbsUp className="w-20 h-20 text-black" strokeWidth={2.5} />
+            {isUnlikeSwipe ? (
+              <ThumbsDown className="w-20 h-20 text-white" strokeWidth={2.5} />
+            ) : (
+              <ThumbsUp className="w-20 h-20 text-black" strokeWidth={2.5} />
+            )}
             {isConfirmed && (
-              <div className="text-black font-bold text-xl animate-in fade-in zoom-in duration-300">
-                Rated!
+              <div className={`${isUnlikeSwipe ? 'text-white' : 'text-black'} font-bold text-xl animate-in fade-in zoom-in duration-300`}>
+                {isUnlikeSwipe ? 'No rated' : 'Rated!'}
               </div>
             )}
           </div>
@@ -187,6 +210,8 @@ export function SwipeablePostImage({ imageUrl, alt, hasRated, onSwipeRate, child
           <div className="text-white text-sm font-medium">
             {swipeProgress < SWIPE_THRESHOLD ? (
               <>Swipe {Math.round((SWIPE_THRESHOLD - swipeProgress) * 100)}% more</>
+            ) : isUnlikeSwipe ? (
+              <>Release for no rated</>
             ) : (
               <>Release to rate {Math.max(1, Math.min(10, Math.round(((swipeProgress - SWIPE_THRESHOLD) / (1 - SWIPE_THRESHOLD)) * 9) + 1))}/10</>
             )}

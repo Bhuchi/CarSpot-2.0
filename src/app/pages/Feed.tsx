@@ -3,63 +3,18 @@ import { Search, Bookmark, Share2, Flag } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { RatingSlider } from '../components/RatingSlider';
-import { AIBlurBadge, AIBlurOverlay } from '../components/AIBlurBadge';
+import { AIBlurBadge } from '../components/AIBlurBadge';
 import { ReportModal } from '../components/ReportModal';
 import { SwipeablePostImage } from '../components/SwipeablePostImage';
-
-interface Post {
-  id: string;
-  imageUrl: string;
-  username: string;
-  userAvatar: string;
-  userRating?: number;
-  communityAverage?: number;
-  hasAIBlur?: boolean;
-  timestamp: string;
-}
-
-const mockPosts: Post[] = [
-  {
-    id: '1',
-    imageUrl: 'https://images.unsplash.com/photo-1765597119545-6b481bd14d37?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZWQlMjBzcG9ydHMlMjBjYXIlMjBmcm9udHxlbnwxfHx8fDE3NzQ5NzUwNDZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    username: 'carspotter_23',
-    userAvatar: 'CS',
-    userRating: 9,
-    communityAverage: 8.7,
-    timestamp: '2 hours ago',
-  },
-  {
-    id: '2',
-    imageUrl: 'https://images.unsplash.com/photo-1716066242980-c864821b1b67?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxibHVlJTIwbHV4dXJ5JTIwc2VkYW58ZW58MXx8fHwxNzc0OTY4NTQ4fDA&ixlib=rb-4.1.0&q=80&w=1080',
-    username: 'luxury_rides',
-    userAvatar: 'LR',
-    hasAIBlur: true,
-    timestamp: '5 hours ago',
-  },
-  {
-    id: '3',
-    imageUrl: 'https://images.unsplash.com/photo-1752462091434-f204aad93153?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3aGl0ZSUyMHNwb3J0cyUyMGNhcnxlbnwxfHx8fDE3NzUwMjkxNTJ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    username: 'speed_demon',
-    userAvatar: 'SD',
-    timestamp: '1 day ago',
-  },
-  {
-    id: '4',
-    imageUrl: 'https://images.unsplash.com/photo-1717954864026-538ebacfe601?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxibGFjayUyMG11c2NsZSUyMGNhcnxlbnwxfHx8fDE3NzUwMjkxNTJ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    username: 'muscle_mania',
-    userAvatar: 'MM',
-    userRating: 7,
-    communityAverage: 8.2,
-    timestamp: '2 days ago',
-  },
-];
+import { getFeedPosts, getSavedPostIds, saveSavedPostIds } from '../lib/posts';
 
 export function Feed() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoggedIn] = useState(true); // Mock logged in state
   const [reportModalOpen, setReportModalOpen] = useState(false);
   const [reportPostId, setReportPostId] = useState('');
-  const [posts, setPosts] = useState(mockPosts);
+  const [posts, setPosts] = useState(() => getFeedPosts());
+  const [savedPostIds, setSavedPostIds] = useState<Set<string>>(() => getSavedPostIds());
 
   const handleRate = (postId: string, rating: number) => {
     console.log(`Rated post ${postId} with ${rating}`);
@@ -79,6 +34,19 @@ export function Feed() {
   const handleReport = (postId: string) => {
     setReportPostId(postId);
     setReportModalOpen(true);
+  };
+
+  const handleSave = (postId: string) => {
+    setSavedPostIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(postId)) {
+        next.delete(postId);
+      } else {
+        next.add(postId);
+      }
+      saveSavedPostIds(next);
+      return next;
+    });
   };
 
   return (
@@ -118,12 +86,7 @@ export function Feed() {
               hasRated={!!post.userRating}
               onSwipeRate={(rating) => handleSwipeRate(post.id, rating)}
             >
-              {post.hasAIBlur && (
-                <>
-                  <AIBlurOverlay className="bottom-12 left-1/2 -translate-x-1/2 w-32 h-10" />
-                  <AIBlurBadge />
-                </>
-              )}
+              <AIBlurBadge />
             </SwipeablePostImage>
 
             {/* Content */}
@@ -141,10 +104,15 @@ export function Feed() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex-1 border-white/10 text-white hover:bg-white/5"
+                  onClick={() => handleSave(post.id)}
+                  className={`flex-1 ${
+                    savedPostIds.has(post.id)
+                      ? 'border-[#A3E635]/40 bg-[#A3E635]/10 text-[#A3E635] hover:bg-[#A3E635]/15'
+                      : 'border-white/10 text-white hover:bg-white/5'
+                  }`}
                 >
-                  <Bookmark className="w-4 h-4 mr-2" />
-                  Save
+                  <Bookmark className={`w-4 h-4 mr-2 ${savedPostIds.has(post.id) ? 'fill-current' : ''}`} />
+                  {savedPostIds.has(post.id) ? 'Saved' : 'Save'}
                 </Button>
                 <Button
                   variant="outline"
