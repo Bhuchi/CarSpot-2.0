@@ -48,14 +48,6 @@ const defaultCoupons: Coupon[] = [
     expiryDate: 'Expires Apr 30, 2026',
   },
   {
-    id: '3',
-    sponsor: 'Michelin',
-    title: '$50 Off Tire Set',
-    description: 'Valid on sets of 4 tires',
-    status: 'used',
-    expiryDate: 'Used on Mar 28, 2026',
-  },
-  {
     id: '4',
     sponsor: 'Valvoline',
     title: 'Free Oil Change',
@@ -78,6 +70,22 @@ const defaultCoupons: Coupon[] = [
     description: 'Redeem one free coffee during any weekend meet',
     status: 'active',
     expiryDate: 'Expires Jul 5, 2026',
+  },
+  {
+    id: '7',
+    sponsor: 'QuickCharge EV',
+    title: '30 Minutes Free Charging',
+    description: 'Valid at participating fast-charging stations',
+    status: 'active',
+    expiryDate: 'Expires Jul 20, 2026',
+  },
+  {
+    id: '8',
+    sponsor: 'Torque Garage',
+    title: '15% Off Performance Check',
+    description: 'Discount applies to inspection and tuning packages',
+    status: 'active',
+    expiryDate: 'Expires Aug 1, 2026',
   },
 ];
 

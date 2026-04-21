@@ -121,6 +121,7 @@ export function SwipeablePostImage({ imageUrl, alt, hasRated, onSwipeRate, child
   // Mouse support (desktop)
   const handleMouseDown = (e: React.MouseEvent) => {
     if (isConfirmed) return;
+    e.preventDefault();
     startXRef.current = e.clientX;
     isSwipingRef.current = true;
     setIsSwiping(true);
@@ -163,6 +164,11 @@ export function SwipeablePostImage({ imageUrl, alt, hasRated, onSwipeRate, child
       ref={containerRef}
       className="relative aspect-[4/3] overflow-hidden cursor-grab active:cursor-grabbing"
       onMouseDown={handleMouseDown}
+      style={{
+        overscrollBehaviorX: 'contain',
+        touchAction: 'pan-y',
+        userSelect: 'none',
+      }}
     >
       <img
         src={imageUrl}
