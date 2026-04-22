@@ -9,17 +9,24 @@ import { addEvent, formatEventDate, formatEventTime, pickFallbackEventImage } fr
 export function CreateEvent() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
+  const demoName = 'Bangkok Night Car Meet';
+  const demoLocation = 'CentralWorld Outdoor Parking, Bangkok';
   const [formData, setFormData] = useState({
-    name: '',
-    coverImage: '',
-    coverImageName: '',
-    date: '',
-    time: '',
-    location: '',
-    capacity: '',
-    rules: '',
+    name: demoName,
+    coverImage: pickFallbackEventImage(`${demoName}-${demoLocation}`),
+    coverImageName: 'Auto-selected demo event photo',
+    date: '2026-05-16',
+    time: '19:30',
+    location: demoLocation,
+    capacity: '120',
+    rules: [
+      'No burnouts or aggressive driving',
+      'Keep license plates visible for organizer check-in',
+      'Respect security staff and other attendees',
+      'Keep the parking area clean',
+    ].join('\n'),
     permit: null as File | null,
-    sponsors: '',
+    sponsors: 'Shell, CarSpot Detail Lab, PitStop Cafe',
     rewardType: 'discount' as 'discount' | 'freeItem' | 'raffle',
   });
 
@@ -89,29 +96,33 @@ export function CreateEvent() {
 
       {/* Progress Stepper */}
       <div className="mb-12">
-        <div className="flex items-center justify-between mb-4">
-          {[1, 2, 3, 4].map((s) => (
-            <div key={s} className="flex items-center flex-1">
+        <div className="grid grid-cols-4 items-start">
+          {[
+            { number: 1, label: 'Details' },
+            { number: 2, label: 'Permits' },
+            { number: 3, label: 'Sponsors' },
+            { number: 4, label: 'Review' },
+          ].map(({ number, label }) => (
+            <div key={number} className="relative flex flex-col items-center gap-4">
+              {number < 4 && (
+                <div
+                  className={`absolute top-5 left-1/2 h-0.5 w-full ${
+                    number < step ? 'bg-[#A3E635]' : 'bg-white/10'
+                  }`}
+                />
+              )}
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-medium transition-colors ${
-                  s <= step
+                className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center font-medium transition-colors ${
+                  number <= step
                     ? 'bg-[#A3E635] text-black'
                     : 'bg-[#0F172A] border border-white/[0.07] text-white/40'
                 }`}
               >
-                {s}
+                {number}
               </div>
-              {s < 4 && (
-                <div className={`flex-1 h-0.5 mx-2 ${s < step ? 'bg-[#A3E635]' : 'bg-white/10'}`} />
-              )}
+              <span className="text-sm text-[#6B7280] text-center">{label}</span>
             </div>
           ))}
-        </div>
-        <div className="flex justify-between text-sm text-[#6B7280]">
-          <span>Details</span>
-          <span>Permits</span>
-          <span>Sponsors</span>
-          <span>Review</span>
         </div>
       </div>
 

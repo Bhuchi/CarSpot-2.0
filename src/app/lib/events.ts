@@ -16,6 +16,7 @@ export interface CarSpotEvent {
 
 const EVENTS_STORAGE_KEY = 'carspot-events';
 const JOINED_EVENTS_STORAGE_KEY = 'carspot-joined-events';
+const deletedEventNameMatches = ['kimchi meeting'];
 
 export const fallbackEventImages = [
   'https://images.unsplash.com/photo-1692133208294-7e181628ef21?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixlib=rb-4.1.0&q=80&w=1080',
@@ -89,6 +90,26 @@ export const defaultEvents: CarSpotEvent[] = [
 
 const canUseStorage = () => typeof window !== 'undefined' && Boolean(window.localStorage);
 
+const isDeletedEvent = (event: CarSpotEvent) =>
+  deletedEventNameMatches.some((deletedEventName) =>
+    event.name.trim().toLowerCase().includes(deletedEventName),
+  );
+
+function removeDeletedEvents(events: CarSpotEvent[]) {
+  const filteredEvents = events.filter((event) => !isDeletedEvent(event));
+  if (filteredEvents.length === events.length) return events;
+
+  saveEvents(filteredEvents);
+  const activeEventIds = new Set(filteredEvents.map((event) => event.id));
+  const joinedEventIds = getJoinedEventIds();
+  const filteredJoinedEventIds = new Set(
+    Array.from(joinedEventIds).filter((eventId) => activeEventIds.has(eventId)),
+  );
+  saveJoinedEventIds(filteredJoinedEventIds);
+
+  return filteredEvents;
+}
+
 export function getEvents() {
   if (!canUseStorage()) return defaultEvents;
 
@@ -101,7 +122,7 @@ export function getEvents() {
   try {
     const parsedEvents = JSON.parse(storedEvents) as CarSpotEvent[];
     if (!Array.isArray(parsedEvents)) return defaultEvents;
-    return parsedEvents;
+    return removeDeletedEvents(parsedEvents);
   } catch {
     return defaultEvents;
   }
