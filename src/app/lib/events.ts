@@ -16,7 +16,9 @@ export interface CarSpotEvent {
 
 const EVENTS_STORAGE_KEY = 'carspot-events';
 const JOINED_EVENTS_STORAGE_KEY = 'carspot-joined-events';
+const DEMO_EVENT_CLEANUP_STORAGE_KEY = 'carspot-demo-event-cleaned';
 const deletedEventNameMatches = ['kimchi meeting'];
+const oneTimeDeletedDemoEventName = 'bangkok night car meet';
 
 export const fallbackEventImages = [
   'https://images.unsplash.com/photo-1692133208294-7e181628ef21?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixlib=rb-4.1.0&q=80&w=1080',
@@ -97,7 +99,23 @@ const isDeletedEvent = (event: CarSpotEvent) =>
 
 function removeDeletedEvents(events: CarSpotEvent[]) {
   const filteredEvents = events.filter((event) => !isDeletedEvent(event));
-  if (filteredEvents.length === events.length) return events;
+  return saveFilteredEvents(events, filteredEvents);
+}
+
+function removeExistingDemoEventOnce(events: CarSpotEvent[]) {
+  if (!canUseStorage()) return events;
+  if (window.localStorage.getItem(DEMO_EVENT_CLEANUP_STORAGE_KEY) === 'true') return events;
+
+  const filteredEvents = events.filter(
+    (event) => event.name.trim().toLowerCase() !== oneTimeDeletedDemoEventName,
+  );
+  window.localStorage.setItem(DEMO_EVENT_CLEANUP_STORAGE_KEY, 'true');
+
+  return saveFilteredEvents(events, filteredEvents);
+}
+
+function saveFilteredEvents(originalEvents: CarSpotEvent[], filteredEvents: CarSpotEvent[]) {
+  if (filteredEvents.length === originalEvents.length) return originalEvents;
 
   saveEvents(filteredEvents);
   const activeEventIds = new Set(filteredEvents.map((event) => event.id));
@@ -116,13 +134,14 @@ export function getEvents() {
   const storedEvents = window.localStorage.getItem(EVENTS_STORAGE_KEY);
   if (!storedEvents) {
     saveEvents(defaultEvents);
+    window.localStorage.setItem(DEMO_EVENT_CLEANUP_STORAGE_KEY, 'true');
     return defaultEvents;
   }
 
   try {
     const parsedEvents = JSON.parse(storedEvents) as CarSpotEvent[];
     if (!Array.isArray(parsedEvents)) return defaultEvents;
-    return removeDeletedEvents(parsedEvents);
+    return removeDeletedEvents(removeExistingDemoEventOnce(parsedEvents));
   } catch {
     return defaultEvents;
   }
